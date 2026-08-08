@@ -298,13 +298,15 @@ jobs:
               checks.get('compile_ok',     True),
           ])
 
-          env_file = os.environ.get('GITHUB_OUTPUT', '/dev/null')
+          env_file  = os.environ.get('GITHUB_OUTPUT', '/dev/null')
+          msg_file  = '/tmp/skillme_messages.txt'
           with open(env_file, 'a') as f:
               f.write(f"passed={'true' if required_ok else 'false'}\n")
               f.write(f"domain={domain}\n")
               f.write(f"files_changed={len(changed)}\n")
-              msg_text = '\n'.join(messages)
-              f.write(f"messages<<MSGEOF\n{msg_text}\nMSGEOF\n")
+          # Write messages to a separate temp file to avoid backtick issues in JS
+          with open(msg_file, 'w', encoding='utf-8') as f:
+              f.write('\n'.join(messages))
 
           print(f"\n[SkillMe] RESULT: {'PASS' if required_ok else 'FAIL'}")
           print(f"[SkillMe] Checks: {json.dumps(checks)}")
@@ -319,7 +321,12 @@ jobs:
             const passed   = '${{ steps.evaluate.outputs.passed }}' === 'true';
             const domain   = '${{ steps.evaluate.outputs.domain }}' || 'unknown';
             const files    = '${{ steps.evaluate.outputs.files_changed }}' || '0';
-            const messages = `${{ steps.evaluate.outputs.messages }}` || '_No evaluation details available_';
+            // Read messages from file to avoid backtick/template-literal injection
+            let messages = '_No evaluation details available_';
+            try {
+              const fs = require('fs');
+              messages = fs.readFileSync('/tmp/skillme_messages.txt', 'utf8').trim();
+            } catch (e) { /* file missing — fallback already set */ }
 
             const statusLine = passed
               ? '> 🟢 **PASSED** — All required checks passed. Auto-merging your PR now!'
