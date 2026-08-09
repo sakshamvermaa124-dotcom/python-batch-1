@@ -104,7 +104,8 @@ def parse_page(html_content: str, base_url: str = SITE_DOMAIN) -> List[Dict[str,
 
             # 2. Price
             price_tag = pod.find("p", class_="price_color")
-            price = f"£{re.sub(r'[^\d.]', '', price_tag.text)}" if price_tag else "N/A"
+            clean_price = re.sub(r"[^\d.]", "", price_tag.text) if price_tag else ""
+            price = f"£{clean_price}" if price_tag else "N/A"
 
             # 3. Rating
             rating_tag = pod.find("p", class_="star-rating")
